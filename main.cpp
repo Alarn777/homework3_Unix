@@ -3,37 +3,17 @@
 #include <sys/wait.h>
 #include <ranlib.h>
 #include <errno.h>
-//#include <sys/errno.h>
-//#include <sys/types.h>
+
 #include <queue>
 #include <vector>
-//#include <sys/un.h>
-//#include <time.h>
-//#include <stdio.h>
-//#include <fcntl.h>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <unistd.h>
-//#include <fcntl.h>
-//#include <sys/stat.h>
-//#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-//#include <arpa/inet.h>
-//#include <errno.h>
-//#include <netinet/in.h>
-//#include <unistd.h>
-//#include <fcntl.h>
-//#include <string.h>
-//#include <netinet/in.h>
 #include <unistd.h>
 #define PORT 0x0da2
 #define IP_ADDR 0x7f000001
 #define QUEUE_LEN 20
-#define SIZE 4096
-
 using namespace std;
 
 struct score {
@@ -148,7 +128,7 @@ int main() {
     int clientInSize = sizeof clientIn;
 
     ThreadPoolManager myManager;
-    ThreadPoolInit(&myManager, 3);
+    ThreadPoolInit(&myManager, 100);
 
     while (1) {
         int newfd;
