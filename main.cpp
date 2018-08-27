@@ -166,7 +166,9 @@ int main() {
         Task oneGame;
         oneGame.f = server_game;
         int args = newfd;
-        oneGame.arg = reinterpret_cast<void *>(args);
+        void *arg = &args;
+//        oneGame.arg = reinterpret_cast<void *>(args);
+        oneGame.arg = arg;
         ThreadPoolInsertTask(&myManager,&oneGame);
     }
 
@@ -198,9 +200,9 @@ void *runThread(void *arg) {
 //        pthread_mutex_lock(temp->t_lock);
         if (!temp->my_queue.empty()) {
             Task *newTask = temp->my_queue.front();
-            temp->my_queue.pop();
             pthread_mutex_unlock(temp->t_lock);
             newTask->f(newTask->arg);
+            temp->my_queue.pop();
         } else {
             pthread_cond_wait(temp->t_cond, temp->t_lock);
         }
@@ -213,16 +215,17 @@ void *runThread(void *arg) {
 void* server_game(void *argument)
 {
     score newGameScore;
-    string number = "    ";
-    while(number[0] != number[1] && number[1] != number[2]  &&  number[2] != number[3] && number[3] != number[0]) {
+    string number = "1111";
+    while(number[0] == number[1] || number[1] == number[2]  ||  number[2] == number[3] || number[3] == number[0]) {
         time_t a;
         a = time(0);
-        int i = a % 13;
+        int i = a % 1489;
         number = to_string(i);
         if(number.size() > 4)
             number[4] = '\0';
     }
-    string userGuess = "    ";
+    string userGuess = "     ";
+    int* ne = (int*)argument;
     int* newf = static_cast<int*>(argument);
     int newfd = *newf;
     bool win = false;
