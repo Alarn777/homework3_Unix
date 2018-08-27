@@ -196,8 +196,8 @@ void *runThread(void *arg) {
 
     auto temp = static_cast<ThreadPoolManager *>(arg);
     while (true) {
-//        timepassed = time(0) - programstart;
-//        pthread_mutex_lock(temp->t_lock);
+        pthread_mutex_lock(temp->t_lock);
+        pthread_cond_wait(temp->t_cond,temp->t_lock);
         if (!temp->my_queue.empty()) {
             Task *newTask = temp->my_queue.front();
             pthread_mutex_unlock(temp->t_lock);
@@ -215,17 +215,19 @@ void *runThread(void *arg) {
 void* server_game(void *argument)
 {
     score newGameScore;
-    string number = "1111";
-    while(number[0] == number[1] || number[1] == number[2]  ||  number[2] == number[3] || number[3] == number[0]) {
-        time_t a;
-        a = time(0);
-        int i = a % 1489;
+    string number = "  ";
+    while((number[0] == number[1] || number[1] == number[2] ||  number[2] == number[0] ||  number[2] == number[3] || number[3] == number[0]) && number.size() != 5) {
+        int i = -1;
+        i = rand() % 9000 + 1000;
+        srand ( time(NULL) );
         number = to_string(i);
         if(number.size() > 4)
-            number[4] = '\0';
+            number = number.substr(0,4);
+        if(number.size() < 4)
+            continue;
     }
-    string userGuess = "     ";
-    int* ne = (int*)argument;
+    string userGuess = "";
+    userGuess.resize(4);
     int* newf = static_cast<int*>(argument);
     int newfd = *newf;
     bool win = false;
@@ -234,11 +236,16 @@ void* server_game(void *argument)
         newGameScore.hit = 0;
         newGameScore.number = 0;
 //        send(newfd,&number,number.size(),0);
-        recv(newfd, &userGuess,userGuess.size(), 0);
+        recv(newfd, &userGuess,userGuess.capacity(), 0);
         cout << userGuess << endl;
         if(userGuess == number) {
-            win = true;
-            send(newfd, &win, sizeof(win),0);
+
+            newGameScore.hit = 4;
+            newGameScore.number = 4;
+            send(newfd,&newGameScore, sizeof(newGameScore),0);
+            recv(newfd, &win, sizeof(win), 0);
+//            win = true;
+            break;
         } else {
             for (int i = 0; i < 5; ++i) {
                 if(userGuess[i] == number[i])
@@ -252,25 +259,14 @@ void* server_game(void *argument)
                 }
             }
             send(newfd,&newGameScore, sizeof(newGameScore),0);
+
+            recv(newfd, &win, sizeof(win), 0);
         }
+        userGuess = "";
 
-
-
-
-
-
-
-            send(newfd, &win, sizeof(win),0);
     }
-
-
-
-
-
-
-//    string number;
-    unsigned long i = number.size();
-
+    close(newfd);
+    return NULL;
 }
 
 
