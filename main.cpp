@@ -3,7 +3,6 @@
 #include <sys/wait.h>
 #include <ranlib.h>
 #include <errno.h>
-
 #include <queue>
 #include <vector>
 #include <sys/socket.h>
@@ -56,22 +55,19 @@ int ThreadPoolInit(struct ThreadPoolManager *t, int n) {     //initializer
 }
 void ThreadPoolManagerWait(struct ThreadPoolManager *myManager)
 {
-    for (int i = 0; i < myManager->mythreadpool.size() ; ++i) {
-
+    for (int i = 0; i < myManager->mythreadpool.size() ; ++i)
         pthread_join(myManager->mythreadpool[i],NULL);
-    }
 }
 void ThreadPoolDestroy(struct ThreadPoolManager *t) {
-    for (int i = 0; i < t->mythreadpool.size(); ++i) {
+    for (int i = 0; i < t->mythreadpool.size(); ++i)
         pthread_cancel(t->mythreadpool[i]);
-    }
-    for (int j = 0; j < t->my_queue.size(); ++j) {
+
+    for (int j = 0; j < t->my_queue.size(); ++j)
         t->my_queue.pop();
-    }
+
 }
 
 int ThreadPoolInsertTask(struct ThreadPoolManager *t, struct Task *task) {
-
     pthread_mutex_lock(t->t_lock);
     t->my_queue.push(task);
     pthread_cond_signal(t->t_cond);
@@ -80,8 +76,6 @@ int ThreadPoolInsertTask(struct ThreadPoolManager *t, struct Task *task) {
 
 
 int main() {
-    int opt = 1;
-
     int listenS = socket(AF_INET, SOCK_STREAM, 0);
     if (listenS < 0) {
         perror("socket");
@@ -91,7 +85,7 @@ int main() {
     s.sin_family = AF_INET;
     s.sin_port = htons(PORT);
     s.sin_addr.s_addr = htonl(IP_ADDR);
-    if (::bind(listenS, (struct sockaddr *) &s, sizeof(s)) < 0) {
+    if (::bind(listenS, (struct sockaddr *) &s, sizeof(s)) < 0) {          //The only way found by me to call to bind() from pthread and not std::bind
         perror("bind");
         return 1;
     }
@@ -127,6 +121,8 @@ int main() {
         oneGame.arg = arg;
         ThreadPoolInsertTask(&myManager,&oneGame);
     }
+    ThreadPoolManagerWait(&myManager);
+    ThreadPoolDestroy(&myManager);
     return 0;
 }
 
