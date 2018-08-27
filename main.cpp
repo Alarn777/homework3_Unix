@@ -1,24 +1,55 @@
 #include <iostream>
-#include <string.h>
 #include <pthread.h>
 #include <sys/wait.h>
 #include <ranlib.h>
 #include <errno.h>
+//#include <sys/errno.h>
+//#include <sys/types.h>
 #include <queue>
 #include <vector>
+//#include <sys/un.h>
+//#include <time.h>
+//#include <stdio.h>
+//#include <fcntl.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <unistd.h>
+//#include <fcntl.h>
+//#include <sys/stat.h>
+//#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+//#include <arpa/inet.h>
+//#include <errno.h>
+//#include <netinet/in.h>
+//#include <unistd.h>
+//#include <fcntl.h>
+//#include <string.h>
+//#include <netinet/in.h>
+#include <unistd.h>
+#define PORT 0x0da2
+#define IP_ADDR 0x7f000001
+#define QUEUE_LEN 20
+#define SIZE 4096
 
 using namespace std;
-void *runThread(void *arg);
+
+struct score {
+    int hit;                //exact location and number
+    int number;             //only number
+};
+
+void* server_game(void *argument);
+void* runThread(void *arg);
 void* foo(void*);
 struct Task;
 struct ThreadPoolManager {
-
     queue<Task*> my_queue;
     vector<pthread_t> mythreadpool;
     pthread_mutex_t *t_lock = nullptr;
     pthread_cond_t *t_cond = nullptr;
-
-
 };
 
 struct Task {
@@ -69,8 +100,77 @@ int ThreadPoolInsertTask(struct ThreadPoolManager *t, struct Task *task) {
 
 
 int main() {
+    int opt = 1;
+
+    int listenS = socket(AF_INET, SOCK_STREAM, 0);
+    if (listenS < 0) {
+        perror("socket");
+        return 1;
+    }
+//    if (setsockopt(listenS, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+//    {
+//        perror("setsockopt");
+//        exit(EXIT_FAILURE);
+//    }
+
+
+
+//    struct sockaddr_in s;
+//    s.sin_family = AF_INET;
+//    s.sin_port = htons(PORT);
+//    s.sin_addr.s_addr = htonl(IP_ADDR);
+
+    struct sockaddr_in s = {0};
+    s.sin_family = AF_INET;
+    s.sin_port = htons(PORT);
+    s.sin_addr.s_addr = htonl(IP_ADDR);
+
+//    if (bind(listenS, (struct sockaddr*)(SvrAddress), sizeof(sockaddr_in)) < 0))
+//        perror("bind");
+//        return 1;
+//    }
+//    auto bind_return = bind(listenS, (struct sockaddr *)(SvrAddress), sizeof(struct sockaddr_in));
+
+//    auto bind_res = bind(listenS, SvrAddress->sin_addr, sizeof(SvrAddress->sin_addr));
+    if (::bind(listenS, (struct sockaddr *) &s, sizeof(s)) < 0) {
+        perror("bind");
+        return 1;
+    }
+//    int lol = ::bind(listenS,(struct sockaddr *) &s, sizeof(s));
+
+    if (listen(listenS, QUEUE_LEN) < 0) {
+        perror("listen");
+        return 1;
+    }
+    struct sockaddr_in clientIn;
+    //    struct sockaddr_in clients[100];
+    int clients[100] = {0}, i = 0, ret;
+    int clientInSize = sizeof clientIn;
+
     ThreadPoolManager myManager;
-    ThreadPoolInit(&myManager, 100);
+    ThreadPoolInit(&myManager, 3);
+
+    while (1) {
+        int newfd;
+
+        if ((newfd = accept(listenS, (struct sockaddr *) &clientIn, (socklen_t *) &clientInSize)) < 0) {
+            if (errno == EINTR)
+                continue;
+            else {
+                perror(" Accept error");
+                close(newfd);
+                return 1;
+            }
+        }
+
+        Task oneGame;
+        oneGame.f = server_game;
+        int args = newfd;
+        oneGame.arg = reinterpret_cast<void *>(args);
+        ThreadPoolInsertTask(&myManager,&oneGame);
+    }
+
+
     Task myFoo;
     myFoo.f = foo;
     myFoo.arg = 0;
@@ -95,7 +195,7 @@ void *runThread(void *arg) {
     auto temp = static_cast<ThreadPoolManager *>(arg);
     while (true) {
 //        timepassed = time(0) - programstart;
-        pthread_mutex_lock(temp->t_lock);
+//        pthread_mutex_lock(temp->t_lock);
         if (!temp->my_queue.empty()) {
             Task *newTask = temp->my_queue.front();
             temp->my_queue.pop();
@@ -110,10 +210,68 @@ void *runThread(void *arg) {
 
 
 
+void* server_game(void *argument)
+{
+    score newGameScore;
+    string number = "    ";
+    while(number[0] != number[1] && number[1] != number[2]  &&  number[2] != number[3] && number[3] != number[0]) {
+        time_t a;
+        a = time(0);
+        int i = a % 13;
+        number = to_string(i);
+        if(number.size() > 4)
+            number[4] = '\0';
+    }
+    string userGuess = "    ";
+    int* newf = static_cast<int*>(argument);
+    int newfd = *newf;
+    bool win = false;
+    while (!win)
+    {
+        newGameScore.hit = 0;
+        newGameScore.number = 0;
+//        send(newfd,&number,number.size(),0);
+        recv(newfd, &userGuess,userGuess.size(), 0);
+        cout << userGuess << endl;
+        if(userGuess == number) {
+            win = true;
+            send(newfd, &win, sizeof(win),0);
+        } else {
+            for (int i = 0; i < 5; ++i) {
+                if(userGuess[i] == number[i])
+                    newGameScore.hit++;
+
+            }
+            for (int i = 0; i < 5; ++i) {
+                for (int j = 0; j < 5; ++j) {
+                    if(userGuess[i] == number[j])
+                        newGameScore.number++;
+                }
+            }
+            send(newfd,&newGameScore, sizeof(newGameScore),0);
+        }
 
 
 
-void* foo(void*)
+
+
+
+
+            send(newfd, &win, sizeof(win),0);
+    }
+
+
+
+
+
+
+//    string number;
+    unsigned long i = number.size();
+
+}
+
+
+void* foo(void*argument)
 {
     time_t a;
     a = time(0);
