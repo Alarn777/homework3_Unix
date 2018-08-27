@@ -23,8 +23,9 @@ struct score {
 
 void* server_game(void *argument);
 void* runThread(void *arg);
-void* foo(void*);
+
 struct Task;
+
 struct ThreadPoolManager {
     queue<Task*> my_queue;
     vector<pthread_t> mythreadpool;
@@ -37,7 +38,7 @@ struct Task {
     void *arg;
 };
 
-int ThreadPoolInit(struct ThreadPoolManager *t, int n) {                                     //initializer
+int ThreadPoolInit(struct ThreadPoolManager *t, int n) {     //initializer
     t->t_lock = new pthread_mutex_t();
     t->t_cond = new pthread_cond_t();
     pthread_mutex_init(t->t_lock, 0);
@@ -48,7 +49,6 @@ int ThreadPoolInit(struct ThreadPoolManager *t, int n) {                        
             return 1;
         else
             t->mythreadpool.push_back(temp);
-//    t->my_queue = nullptr;
     }
 
 
@@ -204,10 +204,3 @@ void* server_game(void *argument)
     return NULL;
 }
 
-
-void* foo(void*argument)
-{
-    time_t a;
-    a = time(0);
-    cout << a << endl;
-}
