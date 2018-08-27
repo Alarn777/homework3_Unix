@@ -87,50 +87,27 @@ int main() {
         perror("socket");
         return 1;
     }
-//    if (setsockopt(listenS, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
-//    {
-//        perror("setsockopt");
-//        exit(EXIT_FAILURE);
-//    }
-
-
-
-//    struct sockaddr_in s;
-//    s.sin_family = AF_INET;
-//    s.sin_port = htons(PORT);
-//    s.sin_addr.s_addr = htonl(IP_ADDR);
-
     struct sockaddr_in s = {0};
     s.sin_family = AF_INET;
     s.sin_port = htons(PORT);
     s.sin_addr.s_addr = htonl(IP_ADDR);
-
-//    if (bind(listenS, (struct sockaddr*)(SvrAddress), sizeof(sockaddr_in)) < 0))
-//        perror("bind");
-//        return 1;
-//    }
-//    auto bind_return = bind(listenS, (struct sockaddr *)(SvrAddress), sizeof(struct sockaddr_in));
-
-//    auto bind_res = bind(listenS, SvrAddress->sin_addr, sizeof(SvrAddress->sin_addr));
     if (::bind(listenS, (struct sockaddr *) &s, sizeof(s)) < 0) {
         perror("bind");
         return 1;
     }
-//    int lol = ::bind(listenS,(struct sockaddr *) &s, sizeof(s));
 
     if (listen(listenS, QUEUE_LEN) < 0) {
         perror("listen");
         return 1;
     }
     struct sockaddr_in clientIn;
-    //    struct sockaddr_in clients[100];
     int clients[100] = {0}, i = 0, ret;
     int clientInSize = sizeof clientIn;
 
     ThreadPoolManager myManager;
     ThreadPoolInit(&myManager, 100);
 
-    while (1) {
+    while (true) {
         int newfd;
 
         if ((newfd = accept(listenS, (struct sockaddr *) &clientIn, (socklen_t *) &clientInSize)) < 0) {
@@ -147,33 +124,14 @@ int main() {
         oneGame.f = server_game;
         int args = newfd;
         void *arg = &args;
-//        oneGame.arg = reinterpret_cast<void *>(args);
         oneGame.arg = arg;
         ThreadPoolInsertTask(&myManager,&oneGame);
     }
-
-
-    Task myFoo;
-    myFoo.f = foo;
-    myFoo.arg = 0;
-    ThreadPoolInsertTask(&myManager,&myFoo);
-
-    ThreadPoolManagerWait(&myManager);
-    ThreadPoolDestroy(&myManager);
-
-
-//    int pthread_mutex_init(pthread_mutex_t *restrict mutex, const pthread_mutexattr_t *restrict attr);
-//    int pthread_mutex_destroy(pthread_mutex_t *mutex);
-//    int pthread_cancel(pthread_t tid);
-//    int pthread_join(pthread_t thread, void **rval_ptr);
     return 0;
 }
 
 
 void *runThread(void *arg) {
-//    time_t programstart, timepassed;
-//    programstart = time(0);
-
     auto temp = static_cast<ThreadPoolManager *>(arg);
     while (true) {
         pthread_mutex_lock(temp->t_lock);
@@ -187,7 +145,6 @@ void *runThread(void *arg) {
             pthread_cond_wait(temp->t_cond, temp->t_lock);
         }
     }
-//    exit(1);
 }
 
 
@@ -215,7 +172,6 @@ void* server_game(void *argument)
     {
         newGameScore.hit = 0;
         newGameScore.number = 0;
-//        send(newfd,&number,number.size(),0);
         recv(newfd, &userGuess,userGuess.capacity(), 0);
         cout << userGuess << endl;
         if(userGuess == number) {
@@ -224,7 +180,6 @@ void* server_game(void *argument)
             newGameScore.number = 4;
             send(newfd,&newGameScore, sizeof(newGameScore),0);
             recv(newfd, &win, sizeof(win), 0);
-//            win = true;
             break;
         } else {
             for (int i = 0; i < 5; ++i) {
