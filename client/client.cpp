@@ -82,7 +82,7 @@ int main(int argc, const char *argv[]) {
                     good = true;
             }
         }
-        send(sock, &number, number.capacity(), 0);
+        send(sock, number.c_str(), strlen(number.c_str()), 0);
 
         recv(sock, &gameScore, sizeof(gameScore), 0);
         cout << "Numbers guessed: " << gameScore.number << ",Numbers hit: " << gameScore.hit << endl;

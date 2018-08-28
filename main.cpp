@@ -1,7 +1,7 @@
 #include <iostream>
 #include <pthread.h>
 #include <sys/wait.h>
-#include <ranlib.h>
+//#include <ranlib.h>
 #include <errno.h>
 #include <queue>
 #include <vector>
@@ -54,15 +54,14 @@ int ThreadPoolInit(struct ThreadPoolManager *t, int n) {     //initializer
             t->mythreadpool.push_back(temp);
         }
     }
-
-
-
 }
+
 void ThreadPoolManagerWait(struct ThreadPoolManager *myManager)
 {
     for (int i = 0; i < myManager->mythreadpool.size() ; ++i)
         pthread_join(myManager->mythreadpool[i],NULL);
 }
+
 void ThreadPoolDestroy(struct ThreadPoolManager *t) {
     for (int i = 0; i < t->mythreadpool.size(); ++i)
         pthread_cancel(t->mythreadpool[i]);
@@ -80,7 +79,8 @@ int ThreadPoolInsertTask(struct ThreadPoolManager *t, struct Task *task) {
 }
 
 
-int main() {
+int main(int argc, char const *argv[]) {
+    
     int listenS = socket(AF_INET, SOCK_STREAM, 0);
     if (listenS < 0) {
         perror("socket");
@@ -178,7 +178,9 @@ void* server_game(void *argument)
     {
         newGameScore.hit = 0;
         newGameScore.number = 0;
-        recv(newfd, &userGuess,userGuess.capacity(), 0);
+        char buffer[512];
+        recv(newfd, buffer,sizeof(buffer), 0);
+        userGuess= std::string(buffer);
         if(userGuess == number) {
 
             newGameScore.hit = 4;
