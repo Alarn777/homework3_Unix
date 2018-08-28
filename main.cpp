@@ -6,6 +6,7 @@
 #include <queue>
 #include <vector>
 #include <sys/socket.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -22,6 +23,7 @@ struct score {
 
 void* server_game(void *argument);
 void* runThread(void *arg);
+void* kick (void* arguments);
 
 struct Task;
 
@@ -30,6 +32,8 @@ struct ThreadPoolManager {
     vector<pthread_t> mythreadpool;
     pthread_mutex_t *t_lock = nullptr;
     pthread_cond_t *t_cond = nullptr;
+    vector<int> socket_fd;
+    int games_number = -1;
 };
 
 struct Task {
@@ -46,8 +50,9 @@ int ThreadPoolInit(struct ThreadPoolManager *t, int n) {     //initializer
         pthread_t temp;
         if (pthread_create(&temp, NULL, runThread, t))
             return 1;
-        else
+        else {
             t->mythreadpool.push_back(temp);
+        }
     }
 
 
@@ -97,22 +102,27 @@ int main() {
     struct sockaddr_in clientIn;
     int clients[100] = {0}, i = 0, ret;
     int clientInSize = sizeof clientIn;
-
     ThreadPoolManager myManager;
-    ThreadPoolInit(&myManager, 100);
-
+    ThreadPoolInit(&myManager, 3);
+    //kick thread
+    pthread_t temp_kick;
+    if (pthread_create(&temp_kick, NULL, kick, (void *)&myManager))
+        return 1;
     while (true) {
         int newfd;
-
         if ((newfd = accept(listenS, (struct sockaddr *) &clientIn, (socklen_t *) &clientInSize)) < 0) {
             if (errno == EINTR)
                 continue;
             else {
-                perror(" Accept error");
+                perror("accept");
                 close(newfd);
                 return 1;
             }
+        } else {
+            myManager.games_number++;
+            myManager.socket_fd.push_back(newfd);
         }
+
 
         Task oneGame;
         oneGame.f = server_game;
@@ -169,7 +179,6 @@ void* server_game(void *argument)
         newGameScore.hit = 0;
         newGameScore.number = 0;
         recv(newfd, &userGuess,userGuess.capacity(), 0);
-        cout << userGuess << endl;
         if(userGuess == number) {
 
             newGameScore.hit = 4;
@@ -200,3 +209,42 @@ void* server_game(void *argument)
     return NULL;
 }
 
+void* kick (void* arguments)
+{
+    while(true) {
+        auto temp = static_cast<ThreadPoolManager *>(arguments);
+        string command, tempStr,arg;
+        getline(cin, command);
+        if (command == "exit") {
+            cout << "Goodbye!" << endl;
+            exit(1);
+        }
+        int i;
+        for (i = 0; command[i] != ' ' || command[i] != '\0'; ++i) {
+            tempStr += command[i];
+//            if(command[i] != ' ')
+//            {
+//                command.substr(0,i);
+        }
+        i++;
+        for (int j = 0; i < command.size(); ++j,i++) {
+            arg += command[i];
+        }
+        if (tempStr ==  "kick") {
+            if(0 > stoi(arg) || stoi(arg) > temp->games_number || (stoi(arg) == 0) && temp->socket_fd.empty())
+                cout << "No such game number" << endl;
+            else
+            {
+                close(temp->socket_fd[stoi(arg)]);
+                cout << "Player "<< arg << " was kicked." << endl;
+                temp->games_number--;
+                temp->socket_fd.erase(temp->socket_fd.begin()+stoi(arg));
+
+            }
+        }
+        tempStr.clear();
+        arg.clear();
+        command.clear();
+    }
+
+}
