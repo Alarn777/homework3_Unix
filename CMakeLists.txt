@@ -3,5 +3,5 @@ project(homework3_Unix)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES main.cpp thread_pools.h)
 add_executable(homework3_Unix ${SOURCE_FILES})

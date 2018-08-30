@@ -14,6 +14,7 @@
 #define PORT 0x0da2
 #define IP_ADDR 0x7f000001
 #define QUEUE_LEN 20
+#include "thread_pools.h"
 using namespace std;
 
 struct score {
@@ -103,7 +104,7 @@ int main(int argc, char const *argv[]) {
     int clients[100] = {0}, i = 0, ret;
     int clientInSize = sizeof clientIn;
     ThreadPoolManager myManager;
-    ThreadPoolInit(&myManager, 3);
+    ThreadPoolInit(&myManager, 100);
     //kick thread
     pthread_t temp_kick;
     if (pthread_create(&temp_kick, NULL, kick, (void *)&myManager))
@@ -169,6 +170,7 @@ void* server_game(void *argument)
         if(number.size() < 4)
             continue;
     }
+    cout << number << endl;
     string userGuess = "";
     userGuess.resize(4);
     int* newf = static_cast<int*>(argument);
@@ -222,7 +224,7 @@ void* kick (void* arguments)
             exit(1);
         }
         int i;
-        for (i = 0; command[i] != ' ' || command[i] != '\0'; ++i) {
+        for (i = 0; command[i] != ' ' && command[i] != '\0'; ++i) {
             tempStr += command[i];
 //            if(command[i] != ' ')
 //            {
